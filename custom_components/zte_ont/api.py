@@ -14,6 +14,7 @@ import ssl
 import string
 import warnings
 from dataclasses import dataclass
+from http.cookies import CookieError, SimpleCookie
 
 import aiohttp
 
@@ -168,6 +169,7 @@ class ZteOnt:
         host_header: str = DEFAULT_HOST_HEADER,
     ) -> None:
         self._session: aiohttp.ClientSession | None = None
+        self._cookies: dict[str, str] = {}
         self.host = host
         self.port = port
         self._username = username
@@ -185,6 +187,8 @@ class ZteOnt:
             "Host": self._host_header,
             "Referer": f"{SCHEME}://{self._host_header}/{referer}",
         }
+        if self._cookies:
+            headers["Cookie"] = "; ".join(f"{k}={v}" for k, v in self._cookies.items())
         assert self._session is not None
         try:
             if data is None:
@@ -200,12 +204,30 @@ class ZteOnt:
                     allow_redirects=False, timeout=TIMEOUT,
                 )
             async with resp:
+                self._store_cookies(resp.headers.getall("Set-Cookie", []))
                 return await resp.text(errors="replace")
         except (aiohttp.ClientError, TimeoutError, ssl.SSLError, OSError) as err:
             raise OntError(
                 f"Cannot reach the ONT at {self.host}:{self.port} ({path}): "
                 f"{type(err).__name__}: {err}"
             ) from err
+
+    def _store_cookies(self, set_cookie: list[str]) -> None:
+        """Keep cookies ourselves, ignoring their Domain attribute.
+
+        The ONT scopes its cookie to its own address (192.168.1.1), which
+        would never match when it is reached through a port forward.
+        """
+        for raw in set_cookie:
+            try:
+                jar = SimpleCookie(raw)
+            except CookieError:
+                continue
+            for name, morsel in jar.items():
+                if morsel["expires"] and "1970" in morsel["expires"] or morsel["max-age"] == "0":
+                    self._cookies.pop(name, None)
+                else:
+                    self._cookies[name] = morsel.value
 
     async def _login(self) -> None:
         page = await self._request("login.html", "login.html")
@@ -228,12 +250,10 @@ class ZteOnt:
 
     async def fetch(self) -> OntData:
         async with self._lock:
-            # The ONT tracks the session with a cookie. aiohttp's default jar
-            # ignores cookies from IP addresses, so use an "unsafe" jar, and a
-            # new one per read so no stale session is ever reused.
-            async with aiohttp.ClientSession(
-                cookie_jar=aiohttp.CookieJar(unsafe=True)
-            ) as session:
+            # The ONT tracks the session with a cookie, handled by hand in
+            # _store_cookies; a fresh session per read never reuses a stale one.
+            self._cookies = {}
+            async with aiohttp.ClientSession(cookie_jar=aiohttp.DummyCookieJar()) as session:
                 self._session = session
                 try:
                     await self._login()

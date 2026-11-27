@@ -76,7 +76,7 @@ class FakeOnt:
         self.logins += 1
         self.token = secrets.token_hex(8)
         resp = web.Response(text="var loginStatus = ok;", content_type="text/html")
-        resp.set_cookie("SID", self.token, path="/")
+        resp.set_cookie("SID", self.token, path="/", domain="192.168.1.1")
         return resp
 
     async def _logout(self, request: web.Request) -> web.Response:
