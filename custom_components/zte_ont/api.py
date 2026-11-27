@@ -10,6 +10,7 @@ import asyncio
 import hashlib
 import re
 import secrets
+import ssl
 import string
 from dataclasses import dataclass
 
@@ -32,6 +33,31 @@ GPON_STATES = {
 
 _VAR_RE = re.compile(r'^\s*(?:var\s+)?(\w+)\s*=\s*"([^"]*)"\s*;', re.MULTILINE)
 _NONCE_CHARS = string.ascii_letters + string.digits
+
+
+def _legacy_ssl_context() -> ssl.SSLContext:
+    """TLS context accepting the ONT's self-signed certificate and old ciphers.
+
+    Embedded web servers like the ONT's often only speak TLS 1.0/1.1 or use
+    small keys, which the default Python/Home Assistant context rejects.
+    No CA bundle is loaded, so this is cheap enough for the event loop.
+    """
+    ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    try:
+        ctx.minimum_version = ssl.TLSVersion.TLSv1
+    except (ValueError, OSError):
+        pass
+    try:
+        ctx.set_ciphers("ALL:@SECLEVEL=0")
+    except ssl.SSLError:
+        pass
+    ctx.options |= getattr(ssl, "OP_LEGACY_SERVER_CONNECT", 0)
+    return ctx
+
+
+_SSL_CONTEXT = _legacy_ssl_context()
 
 
 class OntError(Exception):
@@ -160,20 +186,23 @@ class ZteOnt:
         try:
             if data is None:
                 resp = await self._session.get(
-                    self._url(path), headers=headers, ssl=False,
+                    self._url(path), headers=headers, ssl=_SSL_CONTEXT if SCHEME == "https" else False,
                     allow_redirects=False, timeout=TIMEOUT,
                 )
             else:
                 headers["Origin"] = f"{SCHEME}://{self._host_header}"
                 headers["Content-Type"] = "application/x-www-form-urlencoded; charset=UTF-8"
                 resp = await self._session.post(
-                    self._url(path), headers=headers, data=data, ssl=False,
+                    self._url(path), headers=headers, data=data, ssl=_SSL_CONTEXT if SCHEME == "https" else False,
                     allow_redirects=False, timeout=TIMEOUT,
                 )
             async with resp:
                 return await resp.text(errors="replace")
-        except (aiohttp.ClientError, TimeoutError) as err:
-            raise OntError(f"Cannot reach the ONT at {self.host}:{self.port}: {err}") from err
+        except (aiohttp.ClientError, TimeoutError, ssl.SSLError, OSError) as err:
+            raise OntError(
+                f"Cannot reach the ONT at {self.host}:{self.port} ({path}): "
+                f"{type(err).__name__}: {err}"
+            ) from err
 
     async def _login(self) -> None:
         page = await self._request("login.html", "login.html")

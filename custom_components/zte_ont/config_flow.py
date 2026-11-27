@@ -42,11 +42,14 @@ class OntConfigFlow(ConfigFlow, domain=DOMAIN):
     async def _try(self, data: dict[str, Any]) -> tuple[OntData | None, str | None]:
         try:
             return await build_client(self.hass, data).fetch(), None
-        except OntAuthError:
+        except OntAuthError as err:
+            _LOGGER.warning("ONT login failed: %s", err)
             return None, "invalid_auth"
-        except OntBusyError:
+        except OntBusyError as err:
+            _LOGGER.warning("ONT busy: %s", err)
             return None, "busy"
-        except OntError:
+        except OntError as err:
+            _LOGGER.warning("Cannot reach the ONT: %s", err)
             return None, "cannot_connect"
         except Exception:  # noqa: BLE001
             _LOGGER.exception("Unexpected error")
