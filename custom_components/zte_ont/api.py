@@ -12,6 +12,7 @@ import re
 import secrets
 import ssl
 import string
+import warnings
 from dataclasses import dataclass
 
 import aiohttp
@@ -46,7 +47,9 @@ def _legacy_ssl_context() -> ssl.SSLContext:
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE
     try:
-        ctx.minimum_version = ssl.TLSVersion.TLSv1
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            ctx.minimum_version = ssl.TLSVersion.TLSv1
     except (ValueError, OSError):
         pass
     try:
