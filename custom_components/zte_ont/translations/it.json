@@ -1,0 +1,83 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "ONT GPON ZTE",
+        "description": "Indirizzo e credenziali dell'interfaccia web dell'ONT. A ogni lettura l'integrazione entra ed esce, così l'interfaccia web resta libera tra un aggiornamento e l'altro.",
+        "data": {
+          "name": "Nome",
+          "host": "Indirizzo",
+          "port": "Porta HTTPS",
+          "username": "Nome utente",
+          "password": "Password",
+          "host_header": "Header Host"
+        },
+        "data_description": {
+          "host": "Indirizzo IP dell'ONT, oppure di un port forward del router che lo raggiunge.",
+          "host_header": "Indirizzo che l'ONT si aspetta nelle richieste. Lascia 192.168.1.1 se non hai cambiato l'IP LAN dell'ONT."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Nuova autenticazione",
+        "description": "L'ONT ha rifiutato le credenziali.",
+        "data": {
+          "username": "Nome utente",
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Nome utente o password rifiutati dall'ONT",
+      "busy": "Qualcuno è collegato all'interfaccia web dell'ONT: esci e riprova",
+      "cannot_connect": "Impossibile raggiungere l'ONT",
+      "unknown": "Errore imprevisto"
+    },
+    "abort": {
+      "already_configured": "Questo ONT è già configurato",
+      "reauth_successful": "Credenziali aggiornate"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opzioni",
+        "data": {
+          "scan_interval": "Intervallo di aggiornamento (secondi)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "gpon_state": {
+        "name": "Stato GPON",
+        "state": {
+          "initial": "O1 Iniziale",
+          "standby": "O2 Attesa",
+          "serial_number": "O3 Numero di serie",
+          "ranging": "O4 Ranging",
+          "operation": "O5 Operativo",
+          "popup": "O6 LOS intermittente",
+          "emergency_stop": "O7 Arresto di emergenza"
+        }
+      },
+      "rx_power": {
+        "name": "Potenza RX"
+      },
+      "tx_power": {
+        "name": "Potenza TX"
+      },
+      "bias_current": {
+        "name": "Corrente di bias laser"
+      }
+    },
+    "binary_sensor": {
+      "gpon_link": {
+        "name": "Collegamento GPON"
+      },
+      "los": {
+        "name": "Perdita di segnale"
+      }
+    }
+  }
+}

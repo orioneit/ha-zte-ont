@@ -1,0 +1,83 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "ZTE GPON ONT",
+        "description": "Address and web UI credentials of the ONT. Each read logs in and out again, so the web UI stays free between polls.",
+        "data": {
+          "name": "Name",
+          "host": "Address",
+          "port": "HTTPS port",
+          "username": "Username",
+          "password": "Password",
+          "host_header": "Host header"
+        },
+        "data_description": {
+          "host": "IP address of the ONT, or of a router port forward that reaches it.",
+          "host_header": "Address the ONT expects to see in requests. Leave 192.168.1.1 unless you changed the ONT's LAN IP."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate",
+        "description": "The ONT rejected the credentials.",
+        "data": {
+          "username": "Username",
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Username or password rejected by the ONT",
+      "busy": "Someone is logged in to the ONT web UI: log out and try again",
+      "cannot_connect": "Cannot reach the ONT",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "This ONT is already configured",
+      "reauth_successful": "Credentials updated"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options",
+        "data": {
+          "scan_interval": "Polling interval (seconds)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "gpon_state": {
+        "name": "GPON state",
+        "state": {
+          "initial": "O1 Initial",
+          "standby": "O2 Standby",
+          "serial_number": "O3 Serial number",
+          "ranging": "O4 Ranging",
+          "operation": "O5 Operation",
+          "popup": "O6 Intermittent LOS",
+          "emergency_stop": "O7 Emergency stop"
+        }
+      },
+      "rx_power": {
+        "name": "RX power"
+      },
+      "tx_power": {
+        "name": "TX power"
+      },
+      "bias_current": {
+        "name": "Laser bias current"
+      }
+    },
+    "binary_sensor": {
+      "gpon_link": {
+        "name": "GPON link"
+      },
+      "los": {
+        "name": "Loss of signal"
+      }
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "domain": "zte_ont",
+  "name": "ZTE GPON ONT (F6005)",
+  "codeowners": ["@orioneit"],
+  "config_flow": true,
+  "documentation": "https://github.com/orioneit/ha-zte-ont",
+  "integration_type": "device",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/orioneit/ha-zte-ont/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}
