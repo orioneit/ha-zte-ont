@@ -10,7 +10,6 @@ from homeassistant.const import (
     Platform,
 )
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import ZteOnt
 from .const import CONF_HOST_HEADER
@@ -21,7 +20,6 @@ PLATFORMS: list[Platform] = [Platform.BINARY_SENSOR, Platform.SENSOR]
 
 def build_client(hass: HomeAssistant, data: dict) -> ZteOnt:
     return ZteOnt(
-        async_get_clientsession(hass, verify_ssl=False),
         data[CONF_HOST],
         data[CONF_PORT],
         data[CONF_USERNAME],

@@ -1,7 +1,7 @@
 """Minimal client for the web UI of ZTE F6005 (V6) GPON ONTs.
 
-The ONT keeps a single, IP-based session (no cookies): every read logs in,
-fetches the pages it needs and logs out again, so the web UI stays free.
+The ONT allows a single web session: every read logs in with a fresh cookie
+jar, fetches the pages it needs and logs out again, so the web UI stays free.
 """
 
 from __future__ import annotations
@@ -161,14 +161,13 @@ class ZteOnt:
 
     def __init__(
         self,
-        session: aiohttp.ClientSession,
         host: str,
         port: int,
         username: str,
         password: str,
         host_header: str = DEFAULT_HOST_HEADER,
     ) -> None:
-        self._session = session
+        self._session: aiohttp.ClientSession | None = None
         self.host = host
         self.port = port
         self._username = username
@@ -186,6 +185,7 @@ class ZteOnt:
             "Host": self._host_header,
             "Referer": f"{SCHEME}://{self._host_header}/{referer}",
         }
+        assert self._session is not None
         try:
             if data is None:
                 resp = await self._session.get(
@@ -228,11 +228,25 @@ class ZteOnt:
 
     async def fetch(self) -> OntData:
         async with self._lock:
-            await self._login()
-            try:
-                # Same navigation as a browser: devinfo first, then gponinfo
-                self._device = parse_devinfo(await self._request("devinfo.html", "login.html"))
-                optical = parse_gponinfo(await self._request("gponinfo.html", "devinfo.html"))
-            finally:
-                await self._logout()
+            # The ONT tracks the session with a cookie. aiohttp's default jar
+            # ignores cookies from IP addresses, so use an "unsafe" jar, and a
+            # new one per read so no stale session is ever reused.
+            async with aiohttp.ClientSession(
+                cookie_jar=aiohttp.CookieJar(unsafe=True)
+            ) as session:
+                self._session = session
+                try:
+                    await self._login()
+                    try:
+                        # Same navigation as a browser: devinfo, then gponinfo
+                        self._device = parse_devinfo(
+                            await self._request("devinfo.html", "login.html")
+                        )
+                        optical = parse_gponinfo(
+                            await self._request("gponinfo.html", "devinfo.html")
+                        )
+                    finally:
+                        await self._logout()
+                finally:
+                    self._session = None
             return OntData(device=self._device, optical=optical)

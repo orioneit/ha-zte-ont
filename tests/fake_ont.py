@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import secrets
 
 from aiohttp import web
 
@@ -41,6 +42,7 @@ class FakeOnt:
     def __init__(self, username: str = "admin", password: str = "admin") -> None:
         self.cmt = hashlib.sha256(f"{username}97s{password}".encode()).hexdigest()
         self.logged_in = False
+        self.token = ""
         self.other_user = False
         self.state, self.tx, self.rx = 5, 16097, 13354
         self.logins = 0
@@ -72,7 +74,10 @@ class FakeOnt:
             return web.Response(text="<html>Unauthorized</html>", content_type="text/html")
         self.logged_in = True
         self.logins += 1
-        return web.Response(text="var loginStatus = ok;", content_type="text/html")
+        self.token = secrets.token_hex(8)
+        resp = web.Response(text="var loginStatus = ok;", content_type="text/html")
+        resp.set_cookie("SID", self.token, path="/")
+        return resp
 
     async def _logout(self, request: web.Request) -> web.Response:
         self.logged_in = False
@@ -83,7 +88,7 @@ class FakeOnt:
         async def handler(request: web.Request) -> web.Response:
             if bad := self._check_host(request):
                 return bad
-            if not self.logged_in:
+            if not self.logged_in or request.cookies.get("SID") != self.token:
                 return web.Response(text=MOVED, content_type="text/html")
             return web.Response(text=body() if callable(body) else body, content_type="text/html")
         return handler
