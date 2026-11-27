@@ -40,6 +40,9 @@ def test_parse_real_values() -> None:
     # O1 with no light from the OLT
     los = parse_gponinfo(GPONINFO.format(state=1, tx=16097, rx=0))
     assert los.state_name == "initial" and los.rx_power is None and los.los
+    # Real reading from an F6005 with a broken fiber: O1, laser off, RX noise
+    cut = parse_gponinfo(GPONINFO.format(state=1, tx=14500, rx=2048))
+    assert cut.rx_power == -35.9 and cut.tx_power is None and cut.los
 
 
 async def test_config_flow(hass: HomeAssistant, ont) -> None:

@@ -100,8 +100,12 @@ class OpticalData:
 
     @property
     def los(self) -> bool:
-        """Loss of signal: no light from the OLT."""
-        return self.rx_power is None
+        """Loss of signal: no usable light from the OLT.
+
+        In O1 the ONT has never synchronised with the OLT; the RX reading
+        there is just noise (e.g. -35.9 dBm with the fiber disconnected).
+        """
+        return self.rx_power is None or self.state == 1
 
 
 @dataclass(slots=True)

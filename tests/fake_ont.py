@@ -76,7 +76,11 @@ class FakeOnt:
         self.logins += 1
         self.token = secrets.token_hex(8)
         resp = web.Response(text="var loginStatus = ok;", content_type="text/html")
-        resp.set_cookie("SID", self.token, path="/", domain="192.168.1.1")
+        # Exactly as the real ONT (GoAhead web server) sends it
+        resp.headers["Set-Cookie"] = (
+            f"-goahead-session-=::webs.session::{self.token}; path=/; "
+            "domain=192.168.1.1; secure; httponly; SameSite=Strict"
+        )
         return resp
 
     async def _logout(self, request: web.Request) -> web.Response:
@@ -88,7 +92,7 @@ class FakeOnt:
         async def handler(request: web.Request) -> web.Response:
             if bad := self._check_host(request):
                 return bad
-            if not self.logged_in or request.cookies.get("SID") != self.token:
+            if not self.logged_in or f"-goahead-session-=::webs.session::{self.token}" not in request.headers.get("Cookie", ""):
                 return web.Response(text=MOVED, content_type="text/html")
             return web.Response(text=body() if callable(body) else body, content_type="text/html")
         return handler
